@@ -15,25 +15,35 @@ module load blast/2.2.22
 
 
 
-<<COMMENT
-input_alignment=round1_HAESA_align.fasta
 
-#make hmm from alignment
-	hmmbuild -o hmmout.txt model.hmm $input_alignment
+#<<COMMENT
 
-#run hmm search
+run="CLV1"
+
+
+cd /home/jm33a/domain_evolution/1KT_searches/$run/
+
+echo "constructing database for input sequences, collecting and aligning inputs..."
+    cat $(ls ~/supertree/databases/primary_transcript_databases/*.oneline.fa) > combined_onelines.fa
+    grep -w -A 1 -f *geneIDs.txt --no-group-separator combined_onelines.fa | awk '{print $1}' > $run.input_seqs.fa #collect input clade seqs
+    linsi $run.input_seqs.fa > $run.input_align.fasta
+
+echo "make hmm from input alignment..."
+	hmmbuild -o hmmout.txt $run.model.hmm $run.input_align.fasta
+
+echo "run hmm searches..."
 	#search_databases=~/supertree/databases/primary_transcript_databases/*.oneline.fa #genomes from LRR_RLK paper
 	search_databases=/project/uma_madelaine_bartlett/JarrettMan/sequence_databases/1KP_seqs/seqs/*/*.prots.out #1 thousand transcriptomes
-	for i in $search_databases; do
-		hmmsearch -o hmmout.txt --noali --tblout table.output.txt model.hmm $i #scan all sequences from a species with the HMM file
+	for current_transcriptome in $search_databases; do
+		hmmsearch -o hmmout.txt --noali --tblout $run.table.output.txt $run.model.hmm $current_transcriptome #scan all sequences from a species with the HMM file
 		#sed -n '4,8p' < table.output.txt | awk '{print $1}' >> tophits.txt # collect the IDs of the top 5 hits
-		top_hit=$(sed -n '4p' < table.output.txt | awk '{print $1}') #ID of best match
-		    j=${i##*/} #store j as the variable after the last '/', which returns the file name only
+		top_hit=$(sed -n '4p' < $run.table.output.txt | awk '{print $1}') #ID of best match
+		    j=${current_transcriptome##*/} #store j as the variable after the last '/', which returns the file name only
 		species_ID=$(echo $j | awk '{print substr($0,0,4)}') #only the first 4 characters of the file name, which is the species ID
 		gene_record_ID=">${species_ID}_${top_hit}" #concatenate the species ID and the geneID with an underscore between, using fasta format >
 	    #print the species/gene ID and sequence to the top hits list in fasta format
 	    	echo $gene_record_ID >> top_hits.seqs.fa #add gene species/gene ID to running list
-	    	grep -w -A 1 $top_hit $i | tail -n 1 >> top_hits.seqs.fa #add gene's sequence to running list
+	    	grep -w -A 1 $top_hit $current_transcriptome | tail -n 1 >> top_hits.seqs.fa #add gene's sequence to running list
 	done
 
 
@@ -43,7 +53,48 @@ echo "Building Pfam domain table from genes" 	##in case need to regenerate pfam 
 	rm pfamout.temp
 echo "done"
 
-COMMENT
+#COMMENT
+
+
+
+
+
+
+
+for current_hit in {4..8} #top 5 hits are on lines 4 to 8
+do
+top_hit=$(sed -n "${current_hit}p" < table.output.txt | awk '{print $1}') #ID of best match
+j=${i##*/} #store j as the variable after the last '/', which returns the file name only
+species_ID=$(echo $j | awk '{print substr($0,0,4)}') #only the first 4 characters of the file name, which is the species ID
+echo "searching and adding $species_ID hits to list.."
+gene_record_ID=">${species_ID}_${top_hit}" #concatenate the species ID and the geneID with an underscore between, using fasta format >
+#print the species/gene ID and sequence to the top hits list in fasta format
+echo $gene_record_ID >> top_hits.seqs.fa #add gene species/gene ID to running list
+grep -w -A 1 $top_hit $i | tail -n 1 >> top_hits.seqs.fa #add gene's sequence to running list
+echo "done adding gene sequences from $species_ID"
+done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ##next step, use R to process this list to only genes with both domains, and only the gene IDs. output is both_domains_IDs.txt
 
