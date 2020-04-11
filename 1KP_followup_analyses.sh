@@ -19,9 +19,12 @@ module load R/3.6.1_packages/tidyverse/1.3.0 gcc/8.1.0
 ################################################################################
 #       1. This script will collect the clade hits from initial search, remove
 #			genes less than 85% of the target length, then build a tree and 
-#			infer the evolution rate at each site.
+#			infer the evolution rate at each site using IQtree
+#       2. It will then add the other clade XI scaffold genes to the alignment,
+#           and remake the tree.
+#       3.It will then collect the nucleotide sequences for the same genes
 ################################################################################
-# bsub < /home/jm33a/domain_evolution/1KP_followup_analyses.sh
+#  run as: bsub < /home/jm33a/domain_evolution/1KP_followup_analyses.sh
 
 run="HBD"
 
